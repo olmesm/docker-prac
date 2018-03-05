@@ -157,7 +157,7 @@
       </head>
       <body>
         <h1>Cool Doggo</h1>
-        <img src="https://media.giphy.com/media/3IJEzhhXuzTB6/giphy.gif">
+        <img src="https://media.giphy.com/media/mRB9PmJFOjAw8/giphy.gif">
       </body>
     </html>
     ```
