@@ -148,18 +148,15 @@
 
     ```html
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>Cool Doggo</title>
       </head>
       <body>
-        <h1>Cool Doggo</h1>
         <img src="https://media.giphy.com/media/mRB9PmJFOjAw8/giphy.gif">
       </body>
     </html>
+
     ```
 
     Save it and head back to your editor.
@@ -255,29 +252,27 @@
 
     So if we wanted to create a new and more complex image, we could do it straight with a new Dockerfile. I prefer to do it via the commandline first. Build the various layers can take a while and any errors can make the process frustrating and slow.
 
-    Like before in out docker-prac directory...
+    Like before in our docker-prac directory...
 
     ```sh
-        # Create a new directory called cool-doggo
-    $ mkdir badass-birdy
+        # Create a new directory called cabbage-savage
+    $ mkdir cabbage-savage
 
     # Now open with the text editor of your choice
-    $ [code | idea | vim | atom] badass-birdy
+    $ [code | idea | vim | atom] cabbage-savage
     ```
 
     ```html
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>Cabbage Savage</title>
       </head>
       <body>
         <img src="https://media.giphy.com/media/WLbtNNR5TKJBS/giphy.gif">
       </body>
     </html>
+
     ````
 
     Lets start a Node Alpine image
