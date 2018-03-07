@@ -2,6 +2,19 @@
 
 <!-- Introduction -->
 
+1.  Spin up a docker container
+1. Get the Nginx Welcome
+1. Change the Nginx Welcome
+1. Create a dockerfile and image
+1. Spin up a docker container with Node
+1. Data in containers is not persisted
+1. Using an attached container to start a project
+1. Our second Dockerfile
+1. Docker Compose file
+1. Final Challenge
+
+---
+
 1. Spin up a docker container
 
     **Objectives:**
@@ -74,6 +87,7 @@
 
 1. Get the Nginx Welcome
 
+
     **Objectives:**
     - Learn Port mapping
 
@@ -119,6 +133,7 @@
     The HTTP protocol normally uses port number 80. Hence webservers typically listen on port 80. Some OS's require high priveledges to connect to port 80 and this is one of the reasons framework webservers such as Express and Django default to something other than port 80.
 
 1. Change the Nginx Welcome
+
 
     **Objectives:**
     - Volume mapping
@@ -175,6 +190,7 @@
     Open <http://localhost:1234> to view cool doggo!
 
 1. Create a dockerfile and image
+
 
     Objectives:
     - Create a dockerfile
@@ -246,6 +262,7 @@
 
 
 1. Spin up a docker container with Node
+
 
     Objectives:
     - Distribute a hello world using a node server
@@ -361,6 +378,7 @@
     /usr/app/cabbage-savage $# yarn serve
 
         yarn run v1.5.1
+
         warning package.json: No license field
         $ /usr/app/cabbage-savage/node_modules/.bin/serve
 
@@ -380,6 +398,7 @@
     We need it for the next exercise
 
 1. Data in containers is not persisted
+
 
     Objectives:
     - Realize data held in a cotainer is not persisted
@@ -428,6 +447,7 @@
 
 1. Using an attached container to start a project
 
+
     Objectives:
     - Realize the short-comings of a Dockerfile-first methodology.
 
@@ -457,8 +477,10 @@
     # Initialize a new node project - hit return for all the fields
     /usr/app/cabbage-savage $# yarn init
         yarn init v1.5.1
+
         question name (cabbage-savage):
         question version (1.0.0):
+
         question description:
         question entry point (index.js):
         question repository url:
@@ -475,6 +497,7 @@
     # Install serve
     /usr/app/cabbage-savage $# yarn add serve
         yarn add v1.5.1
+
         info No lockfile found.
         [1/4] Resolving packages...
         [2/4] Fetching packages...
@@ -494,6 +517,7 @@
     You've setup the project and are now ready to package it all into `cabbage-savage-image`!
 
 1. Our second Dockerfile
+
 
     Objectives:
     - Realize there are layers
@@ -654,38 +678,143 @@
 
 1. Docker Compose file
 
+
     Objectives:
     - Reverse-proxy requests from Nginx to Live-server Container
 
-    In
+    Create a new file in ~/docker-prac called `docker-compose.yaml`
 
-1. Spin up a docker container with Django
-    - Distribute the stock app
+    ```yaml
+    version: '2'
+    services:
+      cool-doggo:
+        image: cool-doggo-image
+        ports:
+          - 1234:80
 
+      cabbage-savage:
+        image: cabbage-savage-image
+        ports:
+          - 2345:5000
+    ```
+
+    Now open <http://localhost:1234> and then <http://localhost:2345>
+
+    Lets add a reverse-proxy using nginx to the mix.
+
+    Create a new directory in ~/docker-prac called `reverse-proxy` and open it with your editor.
+
+    Create a new file called `nginx.conf`
+
+    ```lua
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      server {
+        listen 80;
+        location /cabbage-savage/ {
+          proxy_pass http://cabbage-savage:5000/;
+        }
+
+        location /cool-doggo/ {
+          proxy_pass http://cool-doggo:80/;
+        }
+      }
+    }
+
+    ```
+
+    ```yaml
+    version: '2'
+    services:
+      cool-doggo:
+        image: cool-doggo-image
+        ports:
+          - 1234:80
+
+      cabbage-savage:
+        image: cabbage-savage-image
+        ports:
+          - 2345:5000
+
+      reverse-proxy:
+        image: nginx:alpine
+        volumes:
+          - ./reverse-proxy:/etc/nginx:ro
+        ports:
+          - 3456:80
+
+    ```
+
+    Open the following URLs:
+    - <http://localhost:1234>
+    - <http://localhost:2345>
+    - <http://localhost:3456>
+    - <http://localhost:3456/cool-doggo/>
+    - <http://localhost:3456/cabbage-savage/>
+
+    Potentially this allows us to have an Nginx webserver acting as a reverse proxy and routing requests to the relevant service. We could distribute a bundled SPA via the `/` route and have a `/api` route that serves JSON data.
+
+
+1. Final Challenge
+
+    Try package a deployable [django](https://www.djangoproject.com/download/) or [laravel](https://laravel.com/docs/5.6/installation) app in one of the Python or PHP containers available on dockerhub.
+
+    I would suggest first trying the above with the standard debian images on docker hub, and then attempting with Alpine.
+
+    > **Note** <br>
+    The trick with both is that you need to set the default IP of the django or laravel app to 0.0.0.0 or you won't be able to conect.
+
+
+---
+
+
+Thanks for working through this tutorial. Any feedback, issues or comment, please reach out to me.
+
+![mike drop](https://media.giphy.com/media/3o7qDEq2bMbcbPRQ2c/giphy.gif)
 
 ---
 
 ## Cheat Sheet
 
+## Terminal
+
+- Exit session
+
+    ctrl + d
+
+- Exit repl or process
+
+    ctrl + c
 
 ### Docker
 
-docker run -p host_port:image_port image_name[:tag]
+- See all containers that are running
 
-See all containers that are running
-`docker ps`
+    `docker ps`
 
-Run image with port mapping (-p host_port:container_port)
-docker run -p host_port:container_port image_name:tag
+- Run image with port mapping
 
-??Stop all docker Containers and Images
+    `docker run -p host_port:container_port image_name[:tag]`
 
-`docker rm $(docker ps -a -q)`
+- Run image with volume mapping
 
-?? Remove all Images
+    `docker run -v host_volume:container_volume image_name[:tag]`
 
-`docker rmi $(docker images -q)`
+- Remove all docker Containers and Images
 
-?? Remove all Images with force
+    `docker rm $(docker ps -aq)`
 
-`docker rmi -f $(docker images -q)`
+- Remove all Images
+
+    `docker rmi $(docker images -q)`
+
+- Remove all Images with force
+
+    `docker rmi -f $(docker images -q)`
+
+- Kill all running Images
+
+    `docker kill $(docker ps -q)`
