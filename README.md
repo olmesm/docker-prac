@@ -180,7 +180,7 @@
     - Create a dockerfile
     - Tag an image
 
-    With your text editor create a new file called `Dockerfile`
+    With your text editor create a new file called `Dockerfile` in the same directory as your `index.html`
 
     ```yaml
     # Specify the image
@@ -346,9 +346,14 @@
     ```
 
     > **Why Yarn?** <br>
-    Yarn allows us to run packages directly and not have to install them globally. This is neat as it allows us to list all dependencies within our package.json and not have to add our node_modules to or env path. <br>
-    For the above example we could add the package globally, install it as we did then add a script in the package.json to then run, or we could run the command "node node_modules/.bin/serve"... <br>
-    Alternatively just "yarn serve"
+    Yarn allows us to run packages directly and not have to install them globally or mess around with our path env variable. This is neat as it allows us to list all, normally globally installed, dependencies within our package.json alonside our other dependencies. <br>
+
+    For the above example we could
+    - add the package globally
+    - install it as we did then add a script in the package.json
+    - we could run the command "node node_modules/.bin/serve"...
+
+    Alternatively and much simpler just "yarn serve"
 
     Note this process creates a new node_modules folder inside `~/docker-prac/cabbage-savage` (on your local machine) - this is because of the volume mapping.
 
@@ -371,19 +376,291 @@
 
     Visit <http://localhost:1234>
 
+    > **Don't close your running Docker Image** <br>
+    We need it for the next exercise
 
+1. Data in containers is not persisted
 
+    Objectives:
+    - Realize data held in a cotainer is not persisted
 
-1. Create a dockerfile #2
+    In the same node:alpine image from the previous step
+
+    ```sh
+    # Change up a directory so you are in /usr/app/
+    /usr/app/cabbage-savage $# cd ..
+
+    # Make a new directory
+    /usr/app $# mkdir this_will_not_persist
+
+    # Check the dirs available
+    /usr/app $# ls -l
+    total 4
+    drwxr-xr-x    6 root     root           204 Mar  5 00:01 cabbage-savage
+    drwxr-xr-x    2 root     root          4096 Mar  6 00:02 this_will_not_persist
+    ```
+
+    Note how we have two directories in the /usr/app directory - `cabbage-savage` and `this_will_not_persist`
+
+    ```sh
+    # Close the container
+    ctrl + d
+
+    # Restart the container as before
+    $ docker run -p 1234:5000 -v $(pwd):/usr/app/cabbage-savage -it node:alpine sh
+
+    # change directory
+    / $# cd /usr/app/
+
+    # Check the dirs available
+    /usr/app $# ls -l
+    total 4
+    drwxr-xr-x    6 root     root           204 Mar  5 00:01 cabbage-savage
+    ```
+
+    Note how the directory `this_will_not_persist` disappeared.
+
+    > **Pets vs Cattle** http://cloudscaling.com/blog/cloud-computing/the-history-of-pets-vs-cattle/ <br>
+    "In the old way of doing things, we treat our servers like pets, for example Bob the mail server. If Bob goes down, it’s all hands on deck. The CEO can’t get his email and it’s the end of the world. In the new way, servers are numbered, like cattle in a herd.<br>
+    For example, www001 to www100. When one server goes down, it’s taken out back, shot, and replaced on the line."
+
+    Data in containers is not persisted. This is handy as our containers can be stopped and started and always start in a predictable state.
+
+1. Using an attached container to start a project
+
+    Objectives:
+    - Realize the short-comings of a Dockerfile-first methodology.
+
+    Initialize the project and install all prequired packages via the attached docker container.
+
+    Advantages:
+    - Some node packages contist of binaries that are build for specific OS's.
+    - If some of the team is on a slightly different version of node, this can effect the versions of the packages that are installed.
+    - As a result, your package-lock.json or yarn.lock may vary from environment to environment.
+    - By running the install via the container, you're ensuring the packages are being installed for the correct environment.
+    - All users run their app - be it for dev or prod - via the same container.
+    - Eliminates the need for version managing tools live rvm (ruby), nvm (node), pyenv (python), etc
+
+    ```sh
+    # Change to the cabbage-savage directory
+    $ cd ~/docker-prac/cabbage-savage
+
+    # Remove all files in the cabbage-savage directory, EXCEPT the index.html
+    $ [[ "$PWD" == *cabbage-savage ]] && find . \! -name "index.html" -delete
+
+    # Start a Node Alpine container (we don't require ports right now)
+    $ docker run -v $(pwd):/usr/app/cabbage-savage -it node:alpine sh
+
+    # Go to the working directory
+    / $# cd /usr/app/cabbage-savage
+
+    # Initialize a new node project - hit return for all the fields
+    /usr/app/cabbage-savage $# yarn init
+        yarn init v1.5.1
+        question name (cabbage-savage):
+        question version (1.0.0):
+        question description:
+        question entry point (index.js):
+        question repository url:
+        question author:
+        question license (MIT):
+        question private:
+        success Saved package.json
+        Done in 5.47s.
+    ```
+
+    Note at this point, your mapped volume will now contain a `package.json` file.
+
+    ```sh
+    # Install serve
+    /usr/app/cabbage-savage $# yarn add serve
+        yarn add v1.5.1
+        info No lockfile found.
+        [1/4] Resolving packages...
+        [2/4] Fetching packages...
+        [3/4] Linking dependencies...
+        [4/4] Building fresh packages...
+        success Saved lockfile.
+        success Saved 134 new dependencies.
+        ...
+        Done in 8.98s.
+
+    # Exit the container
+    ctrl + d
+    ```
+
+    Your mapped volume will now also contain a `yarn.lock` file and `node_modules` directory.
+
+    You've setup the project and are now ready to package it all into `cabbage-savage-image`!
+
+1. Our second Dockerfile
 
     Objectives:
     - Realize there are layers
     - Optimize image build size
 
+    With your text editor create a new file called `Dockerfile` in the directory `cabbage-savage` directory
+
+    ```yaml
+    # Specify the image
+    FROM node:alpine
+
+    # Specify the working directory
+    WORKDIR /usr/app/cabbage-savage/
+
+    # Copy the package.json and *.lock files to the working directory
+    COPY package.json *.lock ./
+
+    # Run the yarn install
+    RUN yarn install
+
+    # Copy the index.html file to the working directory (or all working files)
+    COPY index.html ./
+
+    # Run a start command
+    CMD yarn serve
+
+    ```
+
+    Build and tag your image
+
+    ```sh
+    # Assuming you are still in ~/docker-prac/cabbage-savage
+    $ docker build -t cabbage-savage-image .
+        Sending build context to Docker daemon  12.14MB
+        Step 1/6 : FROM node:alpine
+        ---> 2f9669a41a9f
+        Step 2/6 : WORKDIR /usr/app/cabbage-savage/
+        ---> Using cache
+        ---> c7b27d12f574
+        Step 3/6 : COPY package.json *.lock ./
+        ---> Using cache
+        ---> 5588051178a8
+        Step 4/6 : RUN yarn install
+        ---> Using cache
+        ---> 1b590ed33812
+        Step 5/6 : COPY index.html ./
+        ---> Using cache
+        ---> 767f88769dc5
+        Step 6/6 : CMD yarn serve
+        ---> Using cache
+        ---> 3b2b1e2e4cb9
+        Successfully built 3b2b1e2e4cb9
+        Successfully tagged cabbage-savage-image:latest
+    ```
+
+    > **Docker Layers** https://medium.com/@jessgreb01/digging-into-docker-layers-c22f948ed612 <br>
+    "Layers of a Docker image are essentially just files generated from running some command.
+    Layers are neat because they can be re-used by multiple images saving disk space and reducing time to build images while maintaining their integrity"
+
+    Each one of the steps above produced a sequencial layer. If any one of the files or layers change, the proceeding layers will be rebuilt. This is great because if you look at the structure of the Dockerfile, we wouldn't need to install node packages everytime because they don't change that often. Consequently we are likely to change the working files and would want that really close the end of the build process so it doesnt force the app to re-download all the node modules everytime.
+
+    Let's check the size of the image:
+
+    ```sh
+    # Check all your images
+    $ docker images
+    ```
+
+    | REPOSITORY| TAG| IMAGE ID| CREATED| SIZE |
+    | --- | --- | --- | --- | ---  |
+    | cabbage-savage-image | latest | 3b2b1e2e4cb9 | 2 minutes days ago | 92.6MB |
+    | cool-doggo-image | latest | f660a3442d6e | 2 minutes days ago | 17.9MB |
+    | nginx | alpine | 537527661905 | 12 days ago | 17.9MB |
+    | nginx | latest | e548f1a579cf | 12 days ago | 109MB |
+
+    `cabbage-savage-image` - 92.6MB!
+
+    Let's see if we can reduce that size:
+
+    ```yaml
+    # Specify the image
+    FROM node:alpine
+
+    # Specify the working directory
+    WORKDIR /usr/app/cabbage-savage/
+
+    # Copy the package.json and *.lock files to the working directory
+    COPY package.json *.lock ./
+
+    # Run the yarn install
+    RUN yarn install
+
+    # Minimize size
+    RUN apk del --purge --force libc-utils \
+    && rm -rf /var/lib/apt/lists/* \
+        /var/cache/apk/* \
+        /usr/share/man \
+        /tmp/* \
+        /usr/lib/node_modules/npm/man \
+        /usr/lib/node_modules/npm/doc \
+        /usr/lib/node_modules/npm/html \
+        /usr/lib/node_modules/npm/scripts \
+        $(yarn cache dir)
+
+    # Copy the index.html file to the working directory (or all working files)
+    COPY index.html ./
+
+    # Run a start command
+    CMD yarn serve
+
+    ```
+
+    | REPOSITORY| TAG| IMAGE ID| CREATED| SIZE |
+    | --- | --- | --- | --- | ---  |
+    | cabbage-savage-image | latest | 46dd5d7302d0 | 2 seconds ago | 92.6MB |
+    | < none > | < none > | 3b2b1e2e4cb9 | 2 minutes ago | 92.6MB |
+    | cool-doggo-image | latest | f660a3442d6e | 2 minutes ago | 17.9MB |
+    | nginx | alpine | 537527661905 | 12 days ago | 17.9MB |
+    | nginx | latest | e548f1a579cf | 12 days ago | 109MB |
+
+    `cabbage-savage-image` still 92.6MB?
+
+    That's because it didn't reduce the size of the layer pervious to the minimize step - removing files after they've been added doesn't reduce the file size.
+
+    Ammend your file as below
+
+    ```yaml
+    ...
+
+    # Run the yarn install
+    # and Minimize size
+    RUN yarn install \
+    && apk del --purge --force libc-utils \
+    && rm -rf /var/lib/apt/lists/* \
+        /var/cache/apk/* \
+
+    ...
+
+    ```
+
+    Build and tag your image as before, then look at your images:
+
+    | REPOSITORY| TAG| IMAGE ID| CREATED| SIZE |
+    | --- | --- | --- | --- | ---  |
+    | cabbage-savage-image | latest | 5a55a4441eae | 2 seconds ago | 78.6MB |
+    | < none > | < none > | 3b2b1e2e4cb9 | 2 minutes ago | 92.6MB |
+
+    We managed to reduce the file size by 20mb just by clearing out the node cache and other unnecessary files.
+
+    To find out what files to remove, I suggest looking at documentation for the respective language you're working with, looking at other dockerfiles, and searching through the container OS docs.
+
+    Again smaller containers deploy quicker.
+
+    ```sh
+    # You can run cabbage-savage-image like before:
+    $ docker run -p 1234:5000 cabbage-savage-image
+    ```
+
+1. Docker Compose file
+
+    Objectives:
+    - Reverse-proxy requests from Nginx to Live-server Container
+
+    In
+
 1. Spin up a docker container with Django
     - Distribute the stock app
-1. Docker Compose file
-    - Reverse-proxy requests from Nginx to Live-server Container
 
 
 ---
