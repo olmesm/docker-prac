@@ -5,7 +5,7 @@
 1.  Spin up a docker container
 1. Get the Nginx Welcome
 1. Change the Nginx Welcome
-1. Create a dockerfile and image
+1. Create a Dockerfile and image
 1. Spin up a docker container with Node
 1. Data in containers is not persisted
 1. Using an attached container to start a project
@@ -189,11 +189,11 @@
 
     Open <http://localhost:1234> to view cool doggo!
 
-1. Create a dockerfile and image
+1. Create a Dockerfile and image
 
 
     Objectives:
-    - Create a dockerfile
+    - Create a Dockerfile
     - Tag an image
 
     With your text editor create a new file called `Dockerfile` in the same directory as your `index.html`
@@ -667,7 +667,7 @@
 
     We managed to reduce the file size by 20mb just by clearing out the node cache and other unnecessary files.
 
-    To find out what files to remove, I suggest looking at documentation for the respective language you're working with, looking at other dockerfiles, and searching through the container OS docs.
+    To find out what files to remove, I suggest looking at documentation for the respective language you're working with, looking at other Dockerfiles, and searching through the container OS docs.
 
     Again smaller containers deploy quicker.
 
